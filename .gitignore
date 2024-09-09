@@ -1,0 +1,16 @@
+# ambiente virtual
+/lopes
+
+# arquivos lopes
+/01_arquivos
+
+# e-mail
+/e-mail/.xlsx*
+/e-mail/.csv*
+
+# extranet
+/extranet/.csv*
+/extranet/.xlsx*
+
+# zapModelo
+/zapModelo

@@ -6,7 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.service import Service as FirefoxService
 from webdriver_manager.firefox import GeckoDriverManager
 
-# time.sleep(18000)
+time.sleep(18000)
 
 navegador = webdriver.Firefox(service=FirefoxService(GeckoDriverManager().install()))
 
@@ -30,4 +30,4 @@ navegador.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[2]/div[1]/div[2]/
 navegador.find_element(By.ID, 'wpai-submit-confirm-form').click()
 
 time.sleep(5)
-navegador.close()
+# navegador.close()

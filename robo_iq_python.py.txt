@@ -1,0 +1,66 @@
+from iqoptionapi.stable_api import IQ_Option
+import pandas as pd
+import time
+
+# Conectar-se à conta IQ Option
+email = "seu_email"
+password = "sua_senha"
+api = IQ_Option(email, password)
+api.connect()
+
+if api.check_connect():
+    print("Conexão bem-sucedida!")
+    # Alterar para conta de demonstração
+    api.change_balance("PRACTICE")  # Trocar para conta de demonstração
+    print("Conta de demonstração configurada.")
+else:
+    print("Erro na conexão.")
+    exit()
+
+# Configurações da estratégia
+ativo = "EURUSD"  # Par de moedas
+timeframe = 10 * 60  # 10 minutos (em segundos)
+periodo_rapido = 21  # EMA Rápida
+periodo_lento = 200  # EMA Lenta
+valor_da_entrada = 2.0  # Valor da ordem em USD
+intervalo_minimo = 600  # Intervalo mínimo de 10 minutos entre operações
+ultima_ordem = None  # Controle do tempo da última operação
+
+# Função para calcular Médias Móveis Exponenciais (EMAs)
+def calcular_medias_moveis(data, periodo_rapido, periodo_lento):
+    data['EMA_Rapida'] = data['close'].ewm(span=periodo_rapido, adjust=False).mean()
+    data['EMA_Lenta'] = data['close'].ewm(span=periodo_lento, adjust=False).mean()
+    return data
+
+# Loop principal
+while True:
+    # Obter dados de velas
+    velas = api.get_candles(ativo, timeframe, periodo_lento + 1, time.time())
+    df = pd.DataFrame(velas)
+    df['time'] = pd.to_datetime(df['from'], unit='s')
+    df.set_index('time', inplace=True)
+
+    # Calcular EMAs
+    df = calcular_medias_moveis(df, periodo_rapido, periodo_lento)
+
+    # Evitar overtrading
+    if ultima_ordem and time.time() - ultima_ordem < intervalo_minimo:
+        print("Intervalo mínimo ainda não passou, aguardando para operar.")
+        time.sleep(10)  # Aguardar 10 segundos antes de verificar novamente
+        continue
+
+    # Verificar cruzamento de médias móveis
+    if df['EMA_Rapida'].iloc[-2] < df['EMA_Lenta'].iloc[-2] and df['EMA_Rapida'].iloc[-1] > df['EMA_Lenta'].iloc[-1]:
+        # Compra detectada
+        print(f"EMA Rápida cruzou acima da EMA Lenta. Enviando ordem de COMPRA para {ativo}.")
+        api.buy(valor_da_entrada, ativo, "call", 1)  # Ordem de compra (call)
+        ultima_ordem = time.time()
+
+    elif df['EMA_Rapida'].iloc[-2] > df['EMA_Lenta'].iloc[-2] and df['EMA_Rapida'].iloc[-1] < df['EMA_Lenta'].iloc[-1]:
+        # Venda detectada
+        print(f"EMA Rápida cruzou abaixo da EMA Lenta. Enviando ordem de VENDA para {ativo}.")
+        api.buy(valor_da_entrada, ativo, "put", 1)  # Ordem de venda (put)
+        ultima_ordem = time.time()
+
+    # Aguardar o próximo ciclo
+    time.sleep(10)
